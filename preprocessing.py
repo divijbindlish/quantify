@@ -53,7 +53,6 @@ def get_timestamp( s ):
 	dt = dateparser.parse( s )
 	epoch = datetime(1970,1,1)
 	diff = dt - epoch
-	# return int( time.mktime(dt.timetuple()) )
 	return int( diff.total_seconds() )
 
 def get_bool( s ):
