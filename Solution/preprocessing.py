@@ -1,4 +1,4 @@
-from sklearn.preprocessing import Imputer
+from sklearn.preprocessing import Imputer, StandardScaler
 from sklearn.feature_extraction import DictVectorizer
 
 import pandas as pd
@@ -69,7 +69,9 @@ def preprocess( training_data, test_data ):
 	target_data = training_data['Risk_Stripe']
 	training_data = training_data.drop( 'Risk_Stripe', axis=1 )
 	training_data, test_data = impute( training_data, test_data, 'mean' )
-	# data = tokenize( data )
+	# training_data = tokenize( training_data )
+	# test_data = tokenize( test_data )
+	training_data, test_data = normalize( training_data, test_data )
 	return (training_data, target_data, test_data)
 
 def clean( data ):
@@ -150,6 +152,14 @@ def tokenize( data ):
 	cat_data_dict = cat_data.T.to_dict().values()
 	cat_data_array = vec.fit_transform( cat_data_dict ).toarray()
 	return data
+
+def normalize( training_data, test_data ):
+	scaler = StandardScaler()
+	values = scaler.fit_transform( training_data )
+	training_data = pd.DataFrame( values, columns=training_data.columns, index=training_data.index )
+	values = scaler.transform( test_data )
+	test_data = pd.DataFrame( values, columns=test_data.columns, index=test_data.index )
+	return training_data, test_data 
 
 def prepare_data():	
 	training_data = pd.read_csv( 'data/Initial_Training_Data.csv' )

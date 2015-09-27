@@ -1,7 +1,7 @@
 from sklearn.feature_selection import VarianceThreshold, RFECV, SelectKBest, SelectPercentile, f_classif
 
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.svm import SVC
+from sklearn.svm import SVC, SVR
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, ExtraTreesClassifier
 from sklearn.naive_bayes import GaussianNB, MultinomialNB
@@ -33,37 +33,51 @@ classifiers = {
 }
 
 def feature_selection( training_data, target_data, test_data ):
-	training_data = training_data.drop( 'Is_Emerging_Market', axis=1 )
 	X = np.array( training_data ).astype(np.float)
 	y = np.array( target_data ).astype(np.float)
-	# X_index = training_data.columns.values
+	X_test = np.array( test_data ).astype(np.float)
+	X_index = np.arange(X.shape[-1])
+	plt.figure()
+
+	''' Variance Threshold '''
+	sel = VarianceThreshold(threshold=(.8 * (1 - .8)))
+	X = sel.fit_transform( X )
+	X_test = sel.transform( X_test )
 	X_index = np.arange(X.shape[-1])
 
-	# Classifier coefficients
-	clf = ExtraTreesClassifier()
-	X_new = clf.fit( X, y ).transform( X )
-	print clf.feature_importances_
-	print X_new.shape
-	
-	# Variance Threshold
-	sel = VarianceThreshold(threshold=(.8 * (1 - .8)))
-	X_new = sel.fit_transform(X)
-	print X_new.shape
-
-	# Univariate feature selection with F-test for feature scoring
-	sel = SelectPercentile( f_classif, percentile=10 ).fit( X, y )
+	''' Univariate feature selection with F-test for feature scoring '''
+	sel = SelectPercentile( f_classif, percentile=10 )
+	sel.fit( X, y )
 	scores = -np.log10(sel.pvalues_)
 	# scores /= scores.max()
 	print X_index
 	print scores
-	plt.figure()
 	plt.bar( X_index - .45, scores, width=.2, label=r'Univariate score ($-Log(p_{value})$)', color='g' )
 
-	clf = classifiers['svm']
-	clf.fit(X, y)
-	svm_weights = (clf.coef_ ** 2).sum(axis=0)
-	svm_weights /= svm_weights.max()
-	plt.bar(X_indices - .25, svm_weights, width=.2, label='SVM weight', color='r')
+	''' Classifier coefficients '''
+	clf = ExtraTreesClassifier()
+	clf.fit( X, y )
+	scores = clf.feature_importances_
+	scores *= 1000
+	print X_index
+	print scores
+	plt.bar( X_index - .25, scores, width=.2, label=r'ExtraTreesClassifier score', color='r' )
+
+	''' Recursive feature elimination with cross validation '''
+	estimator = classifiers['svm_linear']
+	rfecv = RFECV( estimator, step=1, cv=cross_validation.StratifiedKFold(y, 2), scoring='accuracy' )
+	rfecv.fit(X, y)
+	scores = rfecv.grid_scores_
+	scores *= 1000
+	print X_index
+	print scores
+	plt.bar( X_index - .05, scores, width=.2, label=r'RFECV score', color='b' )
+
+	# clf = classifiers['svm']
+	# clf.fit(X, y)
+	# svm_weights = (clf.coef_ ** 2).sum(axis=0)
+	# svm_weights /= svm_weights.max()
+	# plt.bar(X_indices - .25, svm_weights, width=.2, label='SVM weight', color='r')
 
 	plt.show()
 
@@ -84,7 +98,7 @@ def cross_val( training_data, target_data, test_data ):
 	train = np.array( training_data ).astype(np.float)
 	target = np.array( target_data ).astype(np.float)
 	# for clf_key, clf in classifiers.iteritems():
-	clf_key = 'svm'
+	clf_key = 'etc'
 	clf = classifiers[clf_key]
 	scores = cross_validation.cross_val_score( clf, train, target, cv=5 )
 	print clf_key, scores.mean()
