@@ -1,6 +1,6 @@
-from sklearn.feature_selection import VarianceThreshold
 from sklearn.preprocessing import Imputer
 from sklearn.feature_extraction import DictVectorizer
+
 import pandas as pd
 import numpy as np
 import csv

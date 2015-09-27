@@ -1,7 +1,4 @@
-from sklearn.preprocessing import Imputer
-
-from sklearn.feature_selection import VarianceThreshold
-from sklearn.feature_selection import RFECV
+from sklearn.feature_selection import VarianceThreshold, RFECV, SelectKBest, SelectPercentile, f_classif
 
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
@@ -13,16 +10,13 @@ from sklearn.qda import QDA
 
 from sklearn import cross_validation
 
+import matplotlib.pyplot as plt
+
 import pandas as pd
 import numpy as np
-import csv
-import time
-from datetime import datetime
-import dateutil.parser as dateparser
 import pickle
 import os
 from preprocessing import *
-
 
 classifiers = {
 	'knn': KNeighborsClassifier( 3 ),
@@ -39,25 +33,51 @@ classifiers = {
 }
 
 def feature_selection( training_data, target_data, test_data ):
+	training_data = training_data.drop( 'Is_Emerging_Market', axis=1 )
 	X = np.array( training_data ).astype(np.float)
 	y = np.array( target_data ).astype(np.float)
+	# X_index = training_data.columns.values
+	X_index = np.arange(X.shape[-1])
 
+	# Classifier coefficients
 	clf = ExtraTreesClassifier()
 	X_new = clf.fit( X, y ).transform( X )
 	print clf.feature_importances_
 	print X_new.shape
 	
+	# Variance Threshold
 	sel = VarianceThreshold(threshold=(.8 * (1 - .8)))
 	X_new = sel.fit_transform(X)
 	print X_new.shape
 
-	# X_new = SelectKBest( chi2, k=2 ).fit_transform( X, y )
-	# print X_new.shape
+	# Univariate feature selection with F-test for feature scoring
+	sel = SelectPercentile( f_classif, percentile=10 ).fit( X, y )
+	scores = -np.log10(sel.pvalues_)
+	# scores /= scores.max()
+	print X_index
+	print scores
+	plt.figure()
+	plt.bar( X_index - .45, scores, width=.2, label=r'Univariate score ($-Log(p_{value})$)', color='g' )
 
-	return 0
+	clf = classifiers['svm']
+	clf.fit(X, y)
+	svm_weights = (clf.coef_ ** 2).sum(axis=0)
+	svm_weights /= svm_weights.max()
+	plt.bar(X_indices - .25, svm_weights, width=.2, label='SVM weight', color='r')
 
-def classification():
-	return 0
+	plt.show()
+
+def classification( training_data, target_data, test_data ):
+	index = training_data.X_index
+	X = np.array( training_data ).astype(np.float)
+	y = np.array( target_data ).astype(np.float)
+	X_test = = np.array( test_data ).astype(np.float)
+	
+	clf_key = 'svm'
+	clf = classifiers[clf_key]
+	clf.fit( X, y )
+	result = clf.predict( X_test )
+
 
 def cross_val( training_data, target_data, test_data ):
 	train = np.array( training_data ).astype(np.float)
@@ -77,7 +97,7 @@ def main():
 	test_data = pickle.load( open( "objects/clean_test_data.p", "r" ) )
 
 	feature_selection( training_data, target_data, test_data )
-	cross_val( training_data, target_data, test_data )
+	# cross_val( training_data, target_data, test_data )
 
 if __name__ == '__main__':
 	main()
