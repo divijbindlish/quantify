@@ -68,15 +68,16 @@ def feature_selection( training_data, target_data, test_data ):
 	plt.show()
 
 def classification( training_data, target_data, test_data ):
-	index = training_data.X_index
+	result_index = test_data.index
 	X = np.array( training_data ).astype(np.float)
 	y = np.array( target_data ).astype(np.float)
-	X_test = = np.array( test_data ).astype(np.float)
+	X_test = np.array( test_data ).astype(np.float)
 	
 	clf_key = 'svm'
 	clf = classifiers[clf_key]
 	clf.fit( X, y )
 	result = clf.predict( X_test )
+	result = pd.DataFrame( result, columns=['ISIN','Risk_Stripe'], index=result_index)
 
 
 def cross_val( training_data, target_data, test_data ):
