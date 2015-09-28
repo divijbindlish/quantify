@@ -30,7 +30,7 @@ classifiers = {
 	'gauss': GaussianNB(),
 	'lda': LDA(),
 	'qda': QDA(),
-	'ann': neuralNetwork( 16 )
+	# 'ann': neuralNetwork( 16 )
 }
 
 def feature_selection( training_data, target_data, test_data ):
@@ -69,11 +69,13 @@ def feature_selection( training_data, target_data, test_data ):
 	plt.bar( X_index - .25, scores, width=.2, label=r'ExtraTreesClassifier score', color='r' )
 	X_index = np.arange(X.shape[-1])
 
-	clf = classifiers['svm']
+	clf = classifiers['svm_linear']
 	clf.fit(X, y)
 	svm_weights = (clf.coef_ ** 2).sum(axis=0)
 	svm_weights /= svm_weights.max()
-	plt.bar(X_indices - .25, svm_weights, width=.2, label='SVM weight', color='r')
+	print X_index
+	print svm_weights
+	plt.bar(X_index - .05, svm_weights, width=.2, label='SVM weight', color='r')
 
 	''' Recursive feature elimination with cross validation '''
 	estimator = classifiers['svm_linear']
@@ -87,7 +89,7 @@ def feature_selection( training_data, target_data, test_data ):
 	print X_test.shape
 	print X_index
 	print scores
-	plt.bar( X_index - .05, scores, width=.2, label=r'RFECV score', color='b' )
+	plt.bar( X_index + .15, scores, width=.2, label=r'RFECV score', color='b' )
 
 	# plt.show()
 
@@ -107,7 +109,7 @@ def classification( target_data, result_index ):
 		result = clf.predict( X_test )
 		new_result = []
 		for r in result:
-			new_result.append( 'Stripe' + str( int(r) ) )
+			new_result.append( 'Stripe ' + str( int(r) ) )
 		# print new_result
 		result = pd.DataFrame( new_result, columns=['Risk_Stripe'], index=result_index)
 		result.to_csv( 'result/result_' + clf_key + '.csv' )
@@ -130,8 +132,8 @@ def main():
 	test_data = pickle.load( open( "objects/clean_test_data.p", "r" ) )
 	n_classes = len(target_data.unique())
 	
-	training_data, test_data = feature_selection( training_data, target_data, test_data )
 	result_index = test_data.index
+	# training_data, test_data = feature_selection( training_data, target_data, test_data )
 	classification( target_data, result_index )
 	cross_val( target_data )
 
