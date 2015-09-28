@@ -11,8 +11,8 @@ import pickle
 import os
 
 numerical_fields = [
-	'SP_rating',
-	'Moody_rating',
+	'SP_Rating',
+	'Moody_Rating',
 	'Seniority',
 	'Days_to_Settle',
 	'Coupon_Frequency',
@@ -183,9 +183,10 @@ def normalize( training_data, test_data ):
 	return training_data, test_data 
 
 def prepare_data():	
-	training_data = pd.read_csv( 'data/Final_Training_Data.csv' )
-	test_data = pd.read_csv( 'data/Final_Test_Data.csv' )
-
+	training_data = pd.read_csv( 'data/Initial_Training_Data.csv' )
+	test_data = pd.read_csv( 'data/Initial_Test_Data.csv' )
+	# print training_data.columns
+	# print test_data.columns
 	training_data, target_data, test_data = preprocess( training_data, test_data )
 	
 	pickle.dump( training_data, open( "objects/clean_training_data.p", "wb" ) )

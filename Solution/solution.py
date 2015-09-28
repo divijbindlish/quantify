@@ -72,7 +72,7 @@ def feature_selection( training_data, target_data, test_data ):
 	scores = clf.feature_importances_
 	scores *= 1000
 	print scores
-	feature_map = scores.argsort()[-6:][::-1]
+	feature_map = scores.argsort()[-7:][::-1]
 	print feature_map
 	features = features[feature_map]
 	print features
@@ -132,7 +132,7 @@ def main():
 	result_index = test_data.index
 	training_data, test_data = feature_selection( training_data, target_data, test_data )
 	# classification( target_data, result_index )
-	cross_val( target_data )
+	# cross_val( target_data )
 
 if __name__ == '__main__':
 	main()
