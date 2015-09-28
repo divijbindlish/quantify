@@ -72,7 +72,7 @@ def preprocess( training_data, test_data ):
 	# print test_data
 	training_data, test_data = impute( training_data, test_data, 'mean' )
 	# training_data = tokenize( training_data )
-	# test_data = tokenize( test_data )
+	test_data = tokenize( test_data )
 	training_data, test_data = normalize( training_data, test_data )
 	return (training_data, target_data, test_data)
 

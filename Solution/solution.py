@@ -34,68 +34,69 @@ classifiers = {
 }
 
 def feature_selection( training_data, target_data, test_data ):
-	X = np.array( training_data ).astype(np.float)
+	X1 = np.array( training_data ).astype(np.float)
 	y = np.array( target_data ).astype(np.float)
-	X_test = np.array( test_data ).astype(np.float)
-	X_index = np.arange(X.shape[-1])
-	plt.figure()
+	X1_test = np.array( test_data ).astype(np.float)
+	features = training_data.columns
+	print features
+	X_index = np.arange(X1.shape[-1])
 
 	''' Variance Threshold '''
 	sel = VarianceThreshold(threshold=(.8 * (1 - .8)))
-	X = sel.fit_transform( X )
-	X_test = sel.transform( X_test )
-	X_index = np.arange(X.shape[-1])
+	X1 = sel.fit_transform( X1 )
+	X1_test = sel.transform( X1_test )
+	scores = sel.variances_
+	feature_map = sel.get_support()
+	features = features[feature_map]
+	print features
+	plt.figure()
+	plt.bar( X_index, scores, width=.2, label=r'Variance Threshold', color='g' )
+	plt.show()
+	X_index = np.arange(X1.shape[-1])
 
-	''' Univariate feature selection with F-test for feature scoring '''
-	sel = SelectPercentile( f_classif, percentile=10 )
-	sel.fit( X, y )
-	scores = -np.log10(sel.pvalues_)
-	# scores /= scores.max()
-	print X_index
-	print scores
-	plt.bar( X_index - .45, scores, width=.2, label=r'Univariate score ($-Log(p_{value})$)', color='g' )
+	# ''' Univariate feature selection with F-test for feature scoring '''
+	# sel = SelectPercentile( f_classif, percentile=10 )
+	# X1 = sel.fit_transform( X1, y )
+	# X1_test = sel.transform( X1_test )
+	# scores = -np.log10(sel.pvalues_)
+	# plt.figure()
+	# plt.bar( X_index, scores, width=.2, label=r'Univariate score ($-Log(p_{value})$)', color='g' )
+	# plt.show()
+	# X_index = np.arange(X1.shape[-1])
 
 	''' Classifier coefficients '''
 	clf = ExtraTreesClassifier()
-	clf.fit( X, y )
-	X = clf.transform( X )
-	X_test = clf.transform( X_test )
+	clf.fit( X1, y )
+	X1 = clf.transform( X1 )
+	X1_test = clf.transform( X1_test )
 	scores = clf.feature_importances_
 	scores *= 1000
-	print X.shape
-	print X_test.shape
-	print X_index
 	print scores
-	plt.bar( X_index - .25, scores, width=.2, label=r'ExtraTreesClassifier score', color='r' )
-	X_index = np.arange(X.shape[-1])
+	feature_map = scores.argsort()[-6:][::-1]
+	print feature_map
+	features = features[feature_map]
+	print features
+	plt.figure()
+	plt.bar( X_index, scores, width=.2, label=r'ExtraTreesClassifier score', color='r' )
+	plt.show()
+	X_index = np.arange(X1.shape[-1])
 
-	clf = classifiers['svm_linear']
-	clf.fit(X, y)
-	svm_weights = (clf.coef_ ** 2).sum(axis=0)
-	svm_weights /= svm_weights.max()
-	print X_index
-	print svm_weights
-	plt.bar(X_index - .05, svm_weights, width=.2, label='SVM weight', color='r')
-
-	''' Recursive feature elimination with cross validation '''
-	estimator = classifiers['svm_linear']
-	rfecv = RFECV( estimator, step=1, cv=cross_validation.StratifiedKFold(y, 2), scoring='accuracy' )
-	rfecv.fit(X, y)
-	X = rfecv.transform( X )
-	X_test = rfecv.transform( X_test )
-	scores = rfecv.grid_scores_
-	scores *= 1000
-	print X.shape
-	print X_test.shape
-	print X_index
-	print scores
-	plt.bar( X_index + .15, scores, width=.2, label=r'RFECV score', color='b' )
-
+	# ''' Recursive feature elimination with cross validation '''
+	# estimator = classifiers['svm_linear']
+	# rfecv = RFECV( estimator, step=1, cv=cross_validation.StratifiedKFold(y, 2), scoring='accuracy' )
+	# rfecv.fit(X1, y)
+	# X1 = rfecv.transform( X1 )
+	# X1_test = rfecv.transform( X1_test )
+	# scores = rfecv.grid_scores_
+	# scores *= 1000
+	# plt.figure()
+	# plt.bar( X_index, scores, width=.2, label=r'RFECV score', color='b' )
 	# plt.show()
 
-	pickle.dump( X, open( 'objects/feature_selected_training_data.p', 'wb' ) )
-	pickle.dump( X_test, open( 'objects/feature_selected_test_data.p', 'wb' ) )
-	return X, X_test
+	pickle.dump( X1, open( 'objects/feature_selected_training_data.p', 'wb' ) )
+	pickle.dump( X1_test, open( 'objects/feature_selected_test_data.p', 'wb' ) )
+	print X1.shape
+	return X1, X1_test
 
 def classification( target_data, result_index ):
 	X = pickle.load( open( "objects/feature_selected_training_data.p", "r" ) )
@@ -103,17 +104,13 @@ def classification( target_data, result_index ):
 	X_test = pickle.load( open( "objects/feature_selected_test_data.p", "r" ) )
 
 	for clf_key, clf in classifiers.iteritems():
-		# clf_key = 'ann'
-		# clf = classifiers[clf_key]
 		clf.fit( X, y )
 		result = clf.predict( X_test )
 		new_result = []
 		for r in result:
 			new_result.append( 'Stripe ' + str( int(r) ) )
-		# print new_result
 		result = pd.DataFrame( new_result, columns=['Risk_Stripe'], index=result_index)
 		result.to_csv( 'result/result_' + clf_key + '.csv' )
-		break
 
 def cross_val( target_data ):
 	training_data = pickle.load( open( "objects/feature_selected_training_data.p", "r" ) )
@@ -135,7 +132,7 @@ def main():
 	result_index = test_data.index
 	# training_data, test_data = feature_selection( training_data, target_data, test_data )
 	classification( target_data, result_index )
-	cross_val( target_data )
+	# cross_val( target_data )
 
 if __name__ == '__main__':
 	main()
