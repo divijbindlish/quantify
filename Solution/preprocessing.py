@@ -71,8 +71,7 @@ def preprocess( training_data, test_data ):
 	# print training_data
 	# print test_data
 	training_data, test_data = impute( training_data, test_data, 'mean' )
-	# training_data = tokenize( training_data )
-	test_data = tokenize( test_data )
+	# training_data, test_data = tokenize( training_data, test_data )
 	training_data, test_data = normalize( training_data, test_data )
 	return (training_data, target_data, test_data)
 
@@ -143,17 +142,37 @@ def approximate_missing_values( data ):
 
 	return data
 
-def tokenize( data ):
-	categorical_fields.remove( 'Risk_Stripe' )
-	cat_data = data[categorical_fields]
+def tokenize( training_data, test_data ):
+	# print training_data.shape
+	if 'Risk_Stripe' in categorical_fields:
+		categorical_fields.remove( 'Risk_Stripe' )
 	
-	for c in cat_data:
-		cat_data[c] = cat_data[c].map(str)
+	
+	for c in categorical_fields:
+		training_data[c] = training_data[c].map(str)
+		test_data[c] = test_data[c].map(str)
 
+	cat_data = training_data[categorical_fields]
+	ts_cat_data = test_data[categorical_fields]
+	# print cat_data.shape
 	vec = DictVectorizer()
-	cat_data_dict = cat_data.T.to_dict().values()
-	cat_data_array = vec.fit_transform( cat_data_dict ).toarray()
-	return data
+	tr_cat_data_dict = cat_data.T.to_dict().values()
+	ts_cat_data_dict = ts_cat_data.T.to_dict().values()
+	tr_cat_data_array = vec.fit_transform( tr_cat_data_dict ).toarray()
+	ts_cat_data_array = vec.transform( ts_cat_data_dict ).toarray()
+	# print tr_cat_data_array.shape
+	# print ts_cat_data_array.shape
+	non_cat_data = training_data.drop( categorical_fields, axis=1 )
+	non_cat_data = np.array( non_cat_data ).astype(np.float)
+	new_tr_data = np.concatenate( (tr_cat_data_array, non_cat_data), axis=1 )
+	# print new_tr_data.shape
+	non_cat_data = test_data.drop( categorical_fields, axis=1 )
+	non_cat_data = np.array( non_cat_data ).astype(np.float)
+	new_ts_data = np.concatenate( (ts_cat_data_array, non_cat_data), axis=1 )
+	# print new_ts_data.shape
+	new_tr_data = pd.DataFrame( new_tr_data, index=training_data.index )
+	new_ts_data = pd.DataFrame( new_ts_data, index=test_data.index )
+	return new_tr_data, new_ts_data
 
 def normalize( training_data, test_data ):
 	scaler = StandardScaler()

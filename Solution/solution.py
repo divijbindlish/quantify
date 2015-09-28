@@ -130,9 +130,9 @@ def main():
 	n_classes = len(target_data.unique())
 	
 	result_index = test_data.index
-	# training_data, test_data = feature_selection( training_data, target_data, test_data )
-	classification( target_data, result_index )
-	# cross_val( target_data )
+	training_data, test_data = feature_selection( training_data, target_data, test_data )
+	# classification( target_data, result_index )
+	cross_val( target_data )
 
 if __name__ == '__main__':
 	main()
