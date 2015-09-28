@@ -27,7 +27,6 @@ classifiers = {
 	'adb': AdaBoostClassifier(),
 	'etc': ExtraTreesClassifier(),
 	'gauss': GaussianNB(),
-	'mult_gauss': MultinomialNB(),
 	'lda': LDA(),
 	'qda': QDA()
 }
@@ -57,18 +56,27 @@ def feature_selection( training_data, target_data, test_data ):
 	''' Classifier coefficients '''
 	clf = ExtraTreesClassifier()
 	clf.fit( X, y )
+	X = clf.transform( X )
+	X_test = clf.transform( X_test )
 	scores = clf.feature_importances_
 	scores *= 1000
+	print X.shape
+	print X_test.shape
 	print X_index
 	print scores
 	plt.bar( X_index - .25, scores, width=.2, label=r'ExtraTreesClassifier score', color='r' )
+	X_index = np.arange(X.shape[-1])
 
 	''' Recursive feature elimination with cross validation '''
 	estimator = classifiers['svm_linear']
 	rfecv = RFECV( estimator, step=1, cv=cross_validation.StratifiedKFold(y, 2), scoring='accuracy' )
 	rfecv.fit(X, y)
+	X = rfecv.transform( X )
+	X_test = rfecv.transform( X_test )
 	scores = rfecv.grid_scores_
 	scores *= 1000
+	print X.shape
+	print X_test.shape
 	print X_index
 	print scores
 	plt.bar( X_index - .05, scores, width=.2, label=r'RFECV score', color='b' )
@@ -79,29 +87,35 @@ def feature_selection( training_data, target_data, test_data ):
 	# svm_weights /= svm_weights.max()
 	# plt.bar(X_indices - .25, svm_weights, width=.2, label='SVM weight', color='r')
 
-	plt.show()
+	# plt.show()
 
-def classification( training_data, target_data, test_data ):
-	result_index = test_data.index
-	X = np.array( training_data ).astype(np.float)
+	pickle.dump( X, open( 'objects/feature_selected_training_data.p', 'wb' ) )
+	pickle.dump( X_test, open( 'objects/feature_selected_test_data.p', 'wb' ) )
+	return X, X_test
+
+def classification( target_data, result_index ):
+	X = pickle.load( open( "objects/feature_selected_training_data.p", "r" ) )
 	y = np.array( target_data ).astype(np.float)
-	X_test = np.array( test_data ).astype(np.float)
-	
-	clf_key = 'svm'
-	clf = classifiers[clf_key]
-	clf.fit( X, y )
-	result = clf.predict( X_test )
-	result = pd.DataFrame( result, columns=['ISIN','Risk_Stripe'], index=result_index)
+	X_test = pickle.load( open( "objects/feature_selected_test_data.p", "r" ) )
 
+	for clf_key, clf in classifiers.iteritems():
+		# print clf_key
+		clf.fit( X, y )
+		result = clf.predict( X_test )
+		new_result = []
+		for r in result:
+			new_result.append( 'Stripe' + str( int(r) ) )
+		# print new_result
+		result = pd.DataFrame( new_result, columns=['Risk_Stripe'], index=result_index)
+		result.to_csv( 'result/result_' + clf_key + '.csv' )
 
-def cross_val( training_data, target_data, test_data ):
-	train = np.array( training_data ).astype(np.float)
-	target = np.array( target_data ).astype(np.float)
-	# for clf_key, clf in classifiers.iteritems():
-	clf_key = 'etc'
-	clf = classifiers[clf_key]
-	scores = cross_validation.cross_val_score( clf, train, target, cv=5 )
-	print clf_key, scores.mean()
+def cross_val( target_data ):
+	training_data = pickle.load( open( "objects/feature_selected_training_data.p", "r" ) )
+	target_data = np.array( target_data ).astype(np.float)
+	for clf_key, clf in classifiers.iteritems():
+		print clf_key
+		scores = cross_validation.cross_val_score( clf, training_data, target_data, cv=5 )
+		print scores.mean()
 
 def main():
 	if not os.path.exists('objects/clean_training_data.p'):
@@ -111,8 +125,10 @@ def main():
 	target_data = pickle.load( open( "objects/clean_target_data.p", "r" ) )
 	test_data = pickle.load( open( "objects/clean_test_data.p", "r" ) )
 
-	feature_selection( training_data, target_data, test_data )
-	# cross_val( training_data, target_data, test_data )
+	# training_data, test_data = feature_selection( training_data, target_data, test_data )
+	result_index = test_data.index
+	classification( target_data, result_index )
+	# cross_val( target_data )
 
 if __name__ == '__main__':
 	main()
