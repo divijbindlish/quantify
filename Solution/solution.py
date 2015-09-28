@@ -71,8 +71,10 @@ def feature_selection( training_data, target_data, test_data ):
 	X1_test = clf.transform( X1_test )
 	scores = clf.feature_importances_
 	scores *= 1000
-	print scores
-	feature_map = scores.argsort()[-7:][::-1]
+	print scores, scores.argsort()
+
+	# print features
+	feature_map = scores.argsort()[-7:]
 	print feature_map
 	features = features[feature_map]
 	print features
