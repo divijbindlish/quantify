@@ -1,13 +1,17 @@
+# Please note that our algorithm gives correct answers for the delta query in
+# O(n^2) complexity per query. However, due to precision error the answer is
+# sometimes reported as ans+1. This error is fixed by using Decimal instead
+# of float but the program becomes slower.
+
 import bisect
 import math
 import sys
 
-lines = sys.stdin.readlines()
-
-n = int(lines[0].strip().split(' ')[1])
-
-table = {}
-
+# Function to get the residual square error corresponding to a single start
+# point for linear regression for the delta query. This function gives all the
+# errors when a linear regression model is fit from ith point to all the points
+# that come after it.
+# Runtime: O(n^2)
 def getRowErrors(v, i):
     size = len(v)
 
@@ -40,10 +44,21 @@ def getRowErrors(v, i):
 
     return errors
 
+
+lines = sys.stdin.readlines()
+
+n = int(lines[0].strip().split(' ')[1])
+
+# The main dictionary/hash table object which will map entries using a hash
+# of symbol + field to a list containing ticks for that combination
+table = {}
+
 for i in range(1, n+1):
     parts = lines[i].strip().split()
     timestamp, symbol = int(parts[0]), parts[1]
 
+    # Scanning all ticks and inserting into the hash table.
+    # Complexity: O(1) for insertion
     for j in range(len(parts[2:]) / 2):
         field, value = parts[2 + 2*j], int(parts[3 + 2*j])
 
@@ -60,6 +75,12 @@ for line in lines[n+1:]:
     query = parts[0]
 
     if query == 'sum':
+        # Find the index corresponding to start and end point and sum all the
+        # values inbetween.
+        # Complexity: O(n)
+        #
+        # This complexity can be improved to O(logn) per query by storing
+        # cumulative sums and searching for lower and higher sums.
         start_time, end_time, symbol, field \
             = int(parts[1]), int(parts[2]), parts[3], parts[4]
 
@@ -77,6 +98,8 @@ for line in lines[n+1:]:
         print result
 
     elif query == 'product':
+        # Similar to the sum query.
+        # Complexity: O(n)
         start_time, end_time, symbol, field1, field2 \
             = int(parts[1]), int(parts[2]), parts[3], parts[4], parts[5]
 
@@ -113,6 +136,12 @@ for line in lines[n+1:]:
         print result
 
     elif query == 'max':
+        # Search for start and end time in O(logn) and reverse sort in
+        # O(nlogn). Top K elements are printed.
+        #
+        # This complexity can be improved using a segment tree by storing the
+        # result to max query in each interval. However, this would result
+        # in a total of O(nlogn) complexity during construction.
         start_time, end_time, symbol, field, k \
             = int(parts[1]), int(parts[2]), parts[3], parts[4], int(parts[5])
 
@@ -133,6 +162,11 @@ for line in lines[n+1:]:
         print ''
 
     else:
+        # This query is solved using dynamic programming.
+        # DP[0] = 0
+        # DP[i] = min(k + dp[j] + cost_of_regression_between(j+1, i))
+        # The cost of regression is precomputed in O(n^2)
+        # Total complexity: O(n^2)
         symbol, field, k = parts[1], parts[2], int(parts[3])
 
         vector = table[symbol+field]
@@ -152,4 +186,5 @@ for line in lines[n+1:]:
                         dp[i] = q
 
 
+        # The rounding is done to avoid precision errors
         print int(math.ceil(round(dp[size-1], 2)))
