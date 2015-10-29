@@ -116,7 +116,6 @@ for line in sys.stdin:
 
         solution = 0
 
-        # for correlation in np.linspace(0.0, 1.0, 11):
         nsamples = 10**7
         for sample in random.multivariate_normal(mean, cov, nsamples):
             x1 = X1 * func(sample[0], vol1, T)
@@ -129,5 +128,5 @@ for line in sys.stdin:
 
         price = notional * solution / nsamples
 
-        print vol1, str(test_case) + ',' + str(question_type) + ',' \
+        print str(test_case) + ',' + str(question_type) + ',' \
             + str(int(round(price)))
